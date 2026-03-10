@@ -1,44 +1,51 @@
-import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { FiUser, FiMail, FiLock, FiEye, FiEyeOff, FiPhone } from 'react-icons/fi'
-import { useAuth } from '../context/AuthContext'
-import { toast } from 'react-toastify'
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import {
+  FiUser,
+  FiMail,
+  FiLock,
+  FiEye,
+  FiEyeOff,
+  FiPhone,
+} from "react-icons/fi";
+import { useAuth } from "../context/AuthContext";
+import { toast } from "react-toastify";
 
 export default function RegisterPage() {
-  const navigate = useNavigate()
-  const { register, isAuthenticated } = useAuth()
-  
+  const navigate = useNavigate();
+  const { register, isAuthenticated } = useAuth();
+
   const [formData, setFormData] = useState({
-    username: '',
-    email: '',
-    password: '',
-    confirmPassword: '',
-    first_name: '',
-    last_name: '',
-    phone: ''
-  })
-  const [showPassword, setShowPassword] = useState(false)
-  const [loading, setLoading] = useState(false)
+    username: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+    first_name: "",
+    last_name: "",
+    phone: "",
+  });
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   if (isAuthenticated) {
-    navigate('/', { replace: true })
-    return null
+    navigate("/", { replace: true });
+    return null;
   }
 
   const handleSubmit = async (e) => {
-    e.preventDefault()
-    
+    e.preventDefault();
+
     if (formData.password !== formData.confirmPassword) {
-      toast.error('Mật khẩu xác nhận không khớp')
-      return
+      toast.error("Mật khẩu xác nhận không khớp");
+      return;
     }
 
     if (formData.password.length < 6) {
-      toast.error('Mật khẩu phải có ít nhất 6 ký tự')
-      return
+      toast.error("Mật khẩu phải có ít nhất 6 ký tự");
+      return;
     }
 
-    setLoading(true)
+    setLoading(true);
 
     const result = await register({
       username: formData.username,
@@ -46,25 +53,25 @@ export default function RegisterPage() {
       password: formData.password,
       first_name: formData.first_name,
       last_name: formData.last_name,
-      phone: formData.phone
-    })
-    
+      phone: formData.phone,
+    });
+
     if (result.success) {
-      toast.success('Đăng ký thành công!')
-      navigate('/', { replace: true })
+      toast.success("Đăng ký thành công!");
+      navigate("/", { replace: true });
     } else {
-      const errors = result.error
-      if (typeof errors === 'object') {
-        Object.values(errors).forEach(err => {
-          toast.error(Array.isArray(err) ? err[0] : err)
-        })
+      const errors = result.error;
+      if (typeof errors === "object") {
+        Object.values(errors).forEach((err) => {
+          toast.error(Array.isArray(err) ? err[0] : err);
+        });
       } else {
-        toast.error(errors)
+        toast.error(errors);
       }
     }
-    
-    setLoading(false)
-  }
+
+    setLoading(false);
+  };
 
   return (
     <div className="min-h-[80vh] flex items-center justify-center px-4 py-12">
@@ -84,7 +91,9 @@ export default function RegisterPage() {
                 <input
                   type="text"
                   value={formData.first_name}
-                  onChange={(e) => setFormData(d => ({ ...d, first_name: e.target.value }))}
+                  onChange={(e) =>
+                    setFormData((d) => ({ ...d, first_name: e.target.value }))
+                  }
                   className="input-field"
                   placeholder="Nguyễn"
                   required
@@ -97,7 +106,9 @@ export default function RegisterPage() {
                 <input
                   type="text"
                   value={formData.last_name}
-                  onChange={(e) => setFormData(d => ({ ...d, last_name: e.target.value }))}
+                  onChange={(e) =>
+                    setFormData((d) => ({ ...d, last_name: e.target.value }))
+                  }
                   className="input-field"
                   placeholder="Văn A"
                   required
@@ -114,7 +125,9 @@ export default function RegisterPage() {
                 <input
                   type="text"
                   value={formData.username}
-                  onChange={(e) => setFormData(d => ({ ...d, username: e.target.value }))}
+                  onChange={(e) =>
+                    setFormData((d) => ({ ...d, username: e.target.value }))
+                  }
                   className="input-field pl-10"
                   placeholder="username"
                   required
@@ -131,7 +144,9 @@ export default function RegisterPage() {
                 <input
                   type="email"
                   value={formData.email}
-                  onChange={(e) => setFormData(d => ({ ...d, email: e.target.value }))}
+                  onChange={(e) =>
+                    setFormData((d) => ({ ...d, email: e.target.value }))
+                  }
                   className="input-field pl-10"
                   placeholder="email@example.com"
                   required
@@ -148,7 +163,9 @@ export default function RegisterPage() {
                 <input
                   type="tel"
                   value={formData.phone}
-                  onChange={(e) => setFormData(d => ({ ...d, phone: e.target.value }))}
+                  onChange={(e) =>
+                    setFormData((d) => ({ ...d, phone: e.target.value }))
+                  }
                   className="input-field pl-10"
                   placeholder="0912345678"
                 />
@@ -162,9 +179,11 @@ export default function RegisterPage() {
               <div className="relative">
                 <FiLock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
                 <input
-                  type={showPassword ? 'text' : 'password'}
+                  type={showPassword ? "text" : "password"}
                   value={formData.password}
-                  onChange={(e) => setFormData(d => ({ ...d, password: e.target.value }))}
+                  onChange={(e) =>
+                    setFormData((d) => ({ ...d, password: e.target.value }))
+                  }
                   className="input-field pl-10 pr-10"
                   placeholder="••••••••"
                   required
@@ -174,7 +193,11 @@ export default function RegisterPage() {
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                 >
-                  {showPassword ? <FiEyeOff className="w-5 h-5" /> : <FiEye className="w-5 h-5" />}
+                  {showPassword ? (
+                    <FiEyeOff className="w-5 h-5" />
+                  ) : (
+                    <FiEye className="w-5 h-5" />
+                  )}
                 </button>
               </div>
             </div>
@@ -186,9 +209,14 @@ export default function RegisterPage() {
               <div className="relative">
                 <FiLock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
                 <input
-                  type={showPassword ? 'text' : 'password'}
+                  type={showPassword ? "text" : "password"}
                   value={formData.confirmPassword}
-                  onChange={(e) => setFormData(d => ({ ...d, confirmPassword: e.target.value }))}
+                  onChange={(e) =>
+                    setFormData((d) => ({
+                      ...d,
+                      confirmPassword: e.target.value,
+                    }))
+                  }
                   className="input-field pl-10"
                   placeholder="••••••••"
                   required
@@ -201,18 +229,21 @@ export default function RegisterPage() {
               disabled={loading}
               className="btn-primary w-full py-3 mt-6"
             >
-              {loading ? 'Đang đăng ký...' : 'Đăng ký'}
+              {loading ? "Đang đăng ký..." : "Đăng ký"}
             </button>
           </form>
 
           <p className="text-center text-gray-600 mt-6">
-            Đã có tài khoản?{' '}
-            <Link to="/login" className="text-primary-600 hover:text-primary-700 font-medium">
+            Đã có tài khoản?{" "}
+            <Link
+              to="/login"
+              className="text-primary-600 hover:text-primary-700 font-medium"
+            >
               Đăng nhập
             </Link>
           </p>
         </div>
       </div>
     </div>
-  )
+  );
 }

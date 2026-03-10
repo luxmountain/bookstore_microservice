@@ -20,34 +20,35 @@ export const customerService = {
 }
 
 export const cartService = {
-  getCart: (customerId) => api.get('/carts/carts/by_customer/', { params: { customer_id: customerId } }),
-  addItem: (customerId, bookId, quantity = 1) => 
-    api.post('/carts/carts/add_item/', { customer_id: customerId, book_id: bookId, quantity }),
-  updateItem: (customerId, bookId, quantity) => 
-    api.put('/carts/carts/update_item/', { customer_id: customerId, book_id: bookId, quantity }),
-  removeItem: (customerId, bookId) => 
-    api.delete('/carts/carts/remove_item/', { params: { customer_id: customerId, book_id: bookId } }),
-  clearCart: (customerId) => 
-    api.delete('/carts/carts/clear/', { params: { customer_id: customerId } }),
+    getCart: (customerId) => api.get('/carts/carts/by_customer/', { params: { customer_id: customerId } }),
+    addItem: (customerId, bookId, quantity = 1) =>
+        api.post('/carts/carts/add_item/', { customer_id: customerId, book_id: bookId, quantity }),
+    updateItem: (customerId, bookId, quantity) =>
+        api.put('/carts/carts/update_item/', { customer_id: customerId, book_id: bookId, quantity }),
+    removeItem: (customerId, bookId) =>
+        api.delete('/carts/carts/remove_item/', { params: { customer_id: customerId, book_id: bookId } }),
+    clearCart: (customerId) =>
+        api.delete('/carts/carts/clear/', { params: { customer_id: customerId } }),
 }
 
 export const orderService = {
-  create: (data) => api.post('/orders/orders/create_from_cart/', data),
-  getAll: (customerId) => api.get('/orders/orders/', { params: { customer_id: customerId } }),
-  getById: (id) => api.get(`/orders/orders/${id}/`),
-  cancel: (id) => api.post(`/orders/orders/${id}/cancel/`),
+    create: (data) => api.post('/orders/orders/create_from_cart/', data),
+    getAll: (customerId) => api.get('/orders/orders/', { params: { customer_id: customerId } }),
+    getById: (id) => api.get(`/orders/orders/${id}/`),
+    cancel: (id) => api.post(`/orders/orders/${id}/cancel/`),
 }
 
 export const paymentService = {
-  create: (data) => api.post('/payments/payments/', data),
-  getById: (id) => api.get(`/payments/payments/${id}/`),
+    create: (data) => api.post('/payments/payments/', data),
+    getById: (id) => api.get(`/payments/payments/${id}/`),
 }
 
 export const commentService = {
-  getByBook: (bookId) => api.get('/comments/comments/by_book/', { params: { book_id: bookId } }),
-  create: (data) => api.post('/comments/comments/', data),
+    getByBook: (bookId) => api.get('/comments/comments/by_book/', { params: { book_id: bookId } }),
+    create: (data) => api.post('/comments/comments/', data),
 }
 
 export const recommendationService = {
-  getRecommendations: (customerId) => 
-    api.get('/recommendations/recommendations/for_customer/', { params: { customer_id: customerId } }),
+    getRecommendations: (customerId) =>
+        api.get('/recommendations/recommendations/for_customer/', { params: { customer_id: customerId } }),
+}

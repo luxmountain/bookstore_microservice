@@ -3,11 +3,13 @@ FROM node:20-alpine as build
 
 WORKDIR /app
 
-COPY package*.json ./
-RUN npm ci
+RUN corepack enable && corepack prepare yarn@stable --activate
+
+COPY package.json yarn.lock* ./
+RUN yarn install --frozen-lockfile || yarn install
 
 COPY . .
-RUN npm run build
+RUN yarn build
 
 # Production stage
 FROM nginx:alpine

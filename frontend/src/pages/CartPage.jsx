@@ -1,20 +1,20 @@
-import { Link } from 'react-router-dom'
-import { FiMinus, FiPlus, FiTrash2, FiShoppingBag } from 'react-icons/fi'
-import { useCart } from '../context/CartContext'
-import { useAuth } from '../context/AuthContext'
-import Loading from '../components/Loading'
-import EmptyState from '../components/EmptyState'
+import { Link } from "react-router-dom";
+import { FiMinus, FiPlus, FiTrash2, FiShoppingBag } from "react-icons/fi";
+import { useCart } from "../context/CartContext";
+import { useAuth } from "../context/AuthContext";
+import Loading from "../components/Loading";
+import EmptyState from "../components/EmptyState";
 
 export default function CartPage() {
-  const { cart, loading, updateItem, removeItem } = useCart()
-  const { isAuthenticated } = useAuth()
+  const { cart, loading, updateItem, removeItem } = useCart();
+  const { isAuthenticated } = useAuth();
 
   const formatPrice = (price) => {
-    return new Intl.NumberFormat('vi-VN', {
-      style: 'currency',
-      currency: 'VND'
-    }).format(price)
-  }
+    return new Intl.NumberFormat("vi-VN", {
+      style: "currency",
+      currency: "VND",
+    }).format(price);
+  };
 
   if (!isAuthenticated) {
     return (
@@ -30,10 +30,10 @@ export default function CartPage() {
           }
         />
       </div>
-    )
+    );
   }
 
-  if (loading) return <Loading />
+  if (loading) return <Loading />;
 
   if (cart.items.length === 0) {
     return (
@@ -49,7 +49,7 @@ export default function CartPage() {
           }
         />
       </div>
-    )
+    );
   }
 
   return (
@@ -60,14 +60,17 @@ export default function CartPage() {
         {/* Cart Items */}
         <div className="lg:col-span-2 space-y-4">
           {cart.items.map((item) => (
-            <div key={item.book_id} className="bg-white rounded-xl p-4 shadow-sm flex gap-4">
-              <Link 
+            <div
+              key={item.book_id}
+              className="bg-white rounded-xl p-4 shadow-sm flex gap-4"
+            >
+              <Link
                 to={`/books/${item.book_id}`}
                 className="w-24 h-32 bg-gray-100 rounded-lg flex-shrink-0 overflow-hidden"
               >
                 {item.book?.image_url ? (
-                  <img 
-                    src={item.book.image_url} 
+                  <img
+                    src={item.book.image_url}
                     alt={item.book.title}
                     className="w-full h-full object-cover"
                   />
@@ -79,7 +82,7 @@ export default function CartPage() {
               </Link>
 
               <div className="flex-grow">
-                <Link 
+                <Link
                   to={`/books/${item.book_id}`}
                   className="font-semibold text-gray-800 hover:text-primary-600 line-clamp-2"
                 >
@@ -88,18 +91,22 @@ export default function CartPage() {
                 <p className="text-gray-500 text-sm mt-1">
                   {item.book?.author}
                 </p>
-                
+
                 <div className="mt-4 flex items-center justify-between">
                   <div className="flex items-center border rounded-lg">
-                    <button 
-                      onClick={() => updateItem(item.book_id, Math.max(1, item.quantity - 1))}
+                    <button
+                      onClick={() =>
+                        updateItem(item.book_id, Math.max(1, item.quantity - 1))
+                      }
                       className="p-2 hover:bg-gray-100 transition-colors"
                     >
                       <FiMinus className="w-4 h-4" />
                     </button>
                     <span className="px-3 font-medium">{item.quantity}</span>
-                    <button 
-                      onClick={() => updateItem(item.book_id, item.quantity + 1)}
+                    <button
+                      onClick={() =>
+                        updateItem(item.book_id, item.quantity + 1)
+                      }
                       className="p-2 hover:bg-gray-100 transition-colors"
                     >
                       <FiPlus className="w-4 h-4" />
@@ -112,7 +119,7 @@ export default function CartPage() {
                 </div>
               </div>
 
-              <button 
+              <button
                 onClick={() => removeItem(item.book_id)}
                 className="p-2 text-gray-400 hover:text-red-500 transition-colors self-start"
               >
@@ -125,8 +132,10 @@ export default function CartPage() {
         {/* Summary */}
         <div className="lg:col-span-1">
           <div className="bg-white rounded-xl p-6 shadow-sm sticky top-24">
-            <h2 className="font-semibold text-gray-800 text-lg mb-4">Tóm tắt đơn hàng</h2>
-            
+            <h2 className="font-semibold text-gray-800 text-lg mb-4">
+              Tóm tắt đơn hàng
+            </h2>
+
             <div className="space-y-3 border-b pb-4 mb-4">
               <div className="flex justify-between text-gray-600">
                 <span>Tạm tính ({cart.items.length} sản phẩm)</span>
@@ -140,17 +149,19 @@ export default function CartPage() {
 
             <div className="flex justify-between text-lg font-bold text-gray-800 mb-6">
               <span>Tổng cộng</span>
-              <span className="text-primary-600">{formatPrice(cart.total)}</span>
+              <span className="text-primary-600">
+                {formatPrice(cart.total)}
+              </span>
             </div>
 
-            <Link 
+            <Link
               to="/checkout"
               className="btn-primary w-full text-center block"
             >
               Tiến hành thanh toán
             </Link>
 
-            <Link 
+            <Link
               to="/books"
               className="block text-center text-primary-600 hover:text-primary-700 mt-4"
             >
@@ -160,5 +171,5 @@ export default function CartPage() {
         </div>
       </div>
     </div>
-  )
+  );
 }
