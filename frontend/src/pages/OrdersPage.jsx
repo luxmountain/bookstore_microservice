@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { FiPackage, FiEye } from "react-icons/fi";
 import { useAuth } from "../context/AuthContext";
-import { orderService } from "../services";
+import { orderService, bookService } from "../services";
 import Loading from "../components/Loading";
 import EmptyState from "../components/EmptyState";
 
@@ -21,7 +21,38 @@ export default function OrdersPage() {
     const fetchOrders = async () => {
       try {
         const response = await orderService.getAll(customer.id);
-        setOrders(response.data.results || response.data || []);
+        const rawOrders = response.data.results || response.data || [];
+
+        const bookIds = [
+          ...new Set(
+            rawOrders.flatMap((order) =>
+              (order.items || []).map((item) => item.book_id),
+            ),
+          ),
+        ];
+
+        const bookPairs = await Promise.all(
+          bookIds.map(async (bookId) => {
+            try {
+              const bookResponse = await bookService.getById(bookId);
+              return [bookId, bookResponse.data];
+            } catch {
+              return [bookId, null];
+            }
+          }),
+        );
+
+        const bookMap = new Map(bookPairs);
+
+        const ordersWithBooks = rawOrders.map((order) => ({
+          ...order,
+          items: (order.items || []).map((item) => ({
+            ...item,
+            book: bookMap.get(item.book_id) || null,
+          })),
+        }));
+
+        setOrders(ordersWithBooks);
       } catch (error) {
         console.error("Error fetching orders:", error);
       } finally {
@@ -139,9 +170,19 @@ export default function OrdersPage() {
                 {(order.items || []).slice(0, 4).map((item, index) => (
                   <div
                     key={index}
-                    className="w-16 h-20 bg-gray-100 rounded flex-shrink-0 flex items-center justify-center"
+                    className="w-16 h-20 bg-gray-100 rounded flex-shrink-0 overflow-hidden"
                   >
-                    <span className="text-2xl">📚</span>
+                    {item.book?.image_url ? (
+                      <img
+                        src={item.book.image_url}
+                        alt={item.book?.title || `Sách #${item.book_id}`}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <span className="text-2xl">📚</span>
+                      </div>
+                    )}
                   </div>
                 ))}
                 {(order.items?.length || 0) > 4 && (

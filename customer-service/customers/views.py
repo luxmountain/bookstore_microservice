@@ -1,5 +1,6 @@
 import os
 import requests
+from django.contrib.auth.hashers import check_password, make_password
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -37,7 +38,16 @@ class CustomerViewSet(viewsets.ModelViewSet):
         username = request.data.get("username")
         password = request.data.get("password")
         try:
-            customer = Customer.objects.get(username=username, password=password)
-            return Response(CustomerSerializer(customer).data)
+            customer = Customer.objects.get(username=username)
+
+            if check_password(password, customer.password):
+                return Response(CustomerSerializer(customer).data)
+
+            if customer.password == password:
+                customer.password = make_password(password)
+                customer.save(update_fields=["password", "updated_at"])
+                return Response(CustomerSerializer(customer).data)
+
+            return Response({"error": "Invalid credentials"}, status=status.HTTP_401_UNAUTHORIZED)
         except Customer.DoesNotExist:
             return Response({"error": "Invalid credentials"}, status=status.HTTP_401_UNAUTHORIZED)
