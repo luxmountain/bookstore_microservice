@@ -4,9 +4,12 @@ from django.http import JsonResponse
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+from .auth import is_authorized, is_public_route, validate_bearer_token
+from .metrics import inc, snapshot
 
 # Service registry
 SERVICES = {
+    "auth": os.environ.get("AUTH_SERVICE_URL", "http://auth-service:8000"),
     "staff": os.environ.get("STAFF_SERVICE_URL", "http://staff-service:8000"),
     "managers": os.environ.get("MANAGER_SERVICE_URL", "http://manager-service:8000"),
     "customers": os.environ.get("CUSTOMER_SERVICE_URL", "http://customer-service:8000"),
@@ -26,6 +29,10 @@ def health_check(request):
     return JsonResponse({"status": "ok", "service": "api-gateway"})
 
 
+def metrics_view(request):
+    return JsonResponse(snapshot())
+
+
 class GatewayProxyView(APIView):
     """
     Generic proxy view that forwards requests to the appropriate microservice.
@@ -33,12 +40,27 @@ class GatewayProxyView(APIView):
     """
 
     def _proxy(self, request, service_name, path=""):
+        inc("proxy_requests_total")
+
         base_url = SERVICES.get(service_name)
         if not base_url:
+            inc("proxy_unknown_service_total")
             return Response(
                 {"error": f"Unknown service: {service_name}"},
                 status=status.HTTP_404_NOT_FOUND,
             )
+
+        if not is_public_route(service_name, path, request.method):
+            claims, error = validate_bearer_token(request.headers.get("Authorization", ""))
+            if error:
+                inc("auth_rejected_total")
+                return Response({"error": error}, status=status.HTTP_401_UNAUTHORIZED)
+
+            if not is_authorized(service_name, request.method, claims.get("role", "")):
+                inc("rbac_rejected_total")
+                return Response({"error": "Forbidden for this role"}, status=status.HTTP_403_FORBIDDEN)
+        else:
+            claims = None
 
         url = f"{base_url}/api/{path}"
         if not url.endswith("/"):
@@ -48,6 +70,12 @@ class GatewayProxyView(APIView):
         params = request.query_params.dict()
 
         headers = {"Content-Type": "application/json"}
+        if request.headers.get("Authorization"):
+            headers["Authorization"] = request.headers.get("Authorization")
+        if claims:
+            headers["X-User-Id"] = str(claims.get("sub", ""))
+            headers["X-User-Role"] = str(claims.get("role", ""))
+            headers["X-Username"] = str(claims.get("username", ""))
 
         try:
             method = request.method.lower()
@@ -57,6 +85,7 @@ class GatewayProxyView(APIView):
                 kwargs["json"] = request.data
 
             resp = getattr(requests, method)(url, **kwargs)
+            inc("proxy_forwarded_total")
 
             try:
                 data = resp.json()
@@ -66,11 +95,13 @@ class GatewayProxyView(APIView):
             return Response(data, status=resp.status_code)
 
         except requests.ConnectionError:
+            inc("proxy_connection_error_total")
             return Response(
                 {"error": f"Service '{service_name}' is unavailable"},
                 status=status.HTTP_503_SERVICE_UNAVAILABLE,
             )
         except requests.Timeout:
+            inc("proxy_timeout_total")
             return Response(
                 {"error": f"Service '{service_name}' timed out"},
                 status=status.HTTP_504_GATEWAY_TIMEOUT,

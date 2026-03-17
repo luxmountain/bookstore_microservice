@@ -7,6 +7,7 @@ A microservice-based bookstore built with **Django REST Framework**, **Docker Co
 | #   | Service                    | Port | Description                                             |
 | --- | -------------------------- | ---- | ------------------------------------------------------- |
 | 1   | **api-gateway**            | 8000 | Routes all client requests to downstream services       |
+| 1.1 | **auth-service**           | 8012 | JWT issuance/validation + role claims                   |
 | 2   | **staff-service**          | 8001 | Staff user management (CRUD)                            |
 | 3   | **manager-service**        | 8002 | Manager user management (CRUD)                          |
 | 4   | **customer-service**       | 8003 | Customer registration (auto-creates cart) & login       |
@@ -90,17 +91,24 @@ docker-compose up --build
 
 ## Inter-Service Communication
 
-All communication between services is done via **REST HTTP calls** using Python `requests` library:
+Hybrid communication model:
+
+- **REST HTTP** for gateway proxying and query-style fetches.
+- **RabbitMQ messaging** for order/payment/shipping Saga orchestration.
 
 - **customer-service → cart-service**: Auto-create cart on registration
 - **order-service → cart-service**: Fetch cart items
 - **order-service → book-service**: Fetch prices, update stock
-- **order-service → pay-service**: Create payment
-- **order-service → ship-service**: Create shipment
+- **order-saga-worker → pay-event-worker**: `payment.reserve` / `payment.compensate`
+- **order-saga-worker → ship-event-worker**: `shipping.reserve`
 - **cart-service → book-service**: Enrich cart items with book details
 - **recommender-ai-service → comment-rate-service**: Fetch all ratings
 - **recommender-ai-service → book-service**: Fetch book details
 - **api-gateway → all services**: Proxy HTTP requests
+
+## Assignment 06 Deliverables
+
+See [docs/ASSIGNMENT_06_REPORT.md](docs/ASSIGNMENT_06_REPORT.md) for JWT, Saga, RabbitMQ, observability, fault simulation, and load-testing notes.
 
 ## Technical Stack
 

@@ -1,15 +1,31 @@
 import os
 import requests
+from django.http import JsonResponse
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from .models import Order, OrderItem
 from .serializers import OrderSerializer, CreateOrderSerializer
+from .event_bus import publish
 
 CART_SERVICE_URL = os.environ.get("CART_SERVICE_URL", "http://cart-service:8000")
 BOOK_SERVICE_URL = os.environ.get("BOOK_SERVICE_URL", "http://book-service:8000")
 PAY_SERVICE_URL = os.environ.get("PAY_SERVICE_URL", "http://pay-service:8000")
 SHIP_SERVICE_URL = os.environ.get("SHIP_SERVICE_URL", "http://ship-service:8000")
+
+METRICS = {
+    "create_from_cart_requests": 0,
+    "create_from_cart_errors": 0,
+    "saga_started": 0,
+}
+
+
+def health_check(request):
+    return JsonResponse({"status": "ok", "service": "order-service"})
+
+
+def metrics_view(request):
+    return JsonResponse(METRICS)
 
 
 class OrderViewSet(viewsets.ModelViewSet):
@@ -22,12 +38,16 @@ class OrderViewSet(viewsets.ModelViewSet):
         Create an order from the customer's cart.
         Triggers payment and shipping creation.
         """
+        METRICS["create_from_cart_requests"] += 1
+
         ser = CreateOrderSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
         customer_id = ser.validated_data["customer_id"]
         payment_method = ser.validated_data["payment_method"]
         shipping_method = ser.validated_data["shipping_method"]
         shipping_address = ser.validated_data["shipping_address"]
+        simulate_payment_failure = bool(request.data.get("simulate_payment_failure", False))
+        simulate_shipping_failure = bool(request.data.get("simulate_shipping_failure", False))
 
         # 1. Fetch cart
         try:
@@ -38,9 +58,11 @@ class OrderViewSet(viewsets.ModelViewSet):
             )
             cart_data = cart_resp.json()
         except requests.RequestException:
+            METRICS["create_from_cart_errors"] += 1
             return Response({"error": "Failed to fetch cart"}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
 
         if not cart_data.get("items"):
+            METRICS["create_from_cart_errors"] += 1
             return Response({"error": "Cart is empty"}, status=status.HTTP_400_BAD_REQUEST)
 
         # 2. Fetch book prices and calculate total
@@ -52,6 +74,7 @@ class OrderViewSet(viewsets.ModelViewSet):
                 book = book_resp.json()
                 price = float(book["price"])
             except requests.RequestException:
+                METRICS["create_from_cart_errors"] += 1
                 return Response({"error": f"Failed to fetch book {item['book_id']}"}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
             order_items.append({"book_id": item["book_id"], "quantity": item["quantity"], "price": price})
             total += price * item["quantity"]
@@ -63,69 +86,32 @@ class OrderViewSet(viewsets.ModelViewSet):
             payment_method=payment_method,
             shipping_method=shipping_method,
             shipping_address=shipping_address,
-            status="confirmed",
+            status="pending",
         )
         for oi in order_items:
             OrderItem.objects.create(order=order, **oi)
 
-        # 4. Trigger payment
-        try:
-            pay_resp = requests.post(
-                f"{PAY_SERVICE_URL}/api/payments/",
-                json={
-                    "order_id": order.id,
-                    "customer_id": customer_id,
-                    "amount": str(total),
-                    "method": payment_method,
-                },
-                timeout=5,
-            )
-            if pay_resp.status_code == 201:
-                order.payment_id = pay_resp.json().get("id")
-        except requests.RequestException:
-            pass
+        publish(
+            "order.saga.start",
+            {
+                "order_id": order.id,
+                "customer_id": customer_id,
+                "items": order_items,
+                "simulate_payment_failure": simulate_payment_failure,
+                "simulate_shipping_failure": simulate_shipping_failure,
+                "cart_service_url": CART_SERVICE_URL,
+                "book_service_url": BOOK_SERVICE_URL,
+            },
+        )
+        METRICS["saga_started"] += 1
 
-        # 5. Trigger shipping
-        try:
-            ship_resp = requests.post(
-                f"{SHIP_SERVICE_URL}/api/shipments/",
-                json={
-                    "order_id": order.id,
-                    "customer_id": customer_id,
-                    "address": shipping_address,
-                    "method": shipping_method,
-                },
-                timeout=5,
-            )
-            if ship_resp.status_code == 201:
-                order.shipping_id = ship_resp.json().get("id")
-        except requests.RequestException:
-            pass
-
-        order.save()
-
-        # 6. Clear cart
-        try:
-            requests.delete(
-                f"{CART_SERVICE_URL}/api/carts/clear/",
-                params={"customer_id": customer_id},
-                timeout=5,
-            )
-        except requests.RequestException:
-            pass
-
-        # 7. Update book stock
-        for oi in order_items:
-            try:
-                requests.post(
-                    f"{BOOK_SERVICE_URL}/api/books/{oi['book_id']}/update_stock/",
-                    json={"quantity": -oi["quantity"]},
-                    timeout=5,
-                )
-            except requests.RequestException:
-                pass
-
-        return Response(OrderSerializer(order).data, status=status.HTTP_201_CREATED)
+        return Response(
+            {
+                "message": "Order created in pending state. Saga orchestration started.",
+                "order": OrderSerializer(order).data,
+            },
+            status=status.HTTP_202_ACCEPTED,
+        )
 
     @action(detail=False, methods=["get"])
     def by_customer(self, request):

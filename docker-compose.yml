@@ -1,4 +1,15 @@
 services:
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "check_running"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+
   # ─────────────────── PostgreSQL Databases ───────────────────
   postgres-staff:
     image: postgres:15-alpine
@@ -178,6 +189,7 @@ services:
     ports:
       - "8000:8000"
     environment:
+      - AUTH_SERVICE_URL=http://auth-service:8000
       - STAFF_SERVICE_URL=http://staff-service:8000
       - MANAGER_SERVICE_URL=http://manager-service:8000
       - CUSTOMER_SERVICE_URL=http://customer-service:8000
@@ -190,6 +202,7 @@ services:
       - COMMENT_SERVICE_URL=http://comment-rate-service:8000
       - RECOMMENDER_SERVICE_URL=http://recommender-ai-service:8000
     depends_on:
+      - auth-service
       - staff-service
       - manager-service
       - customer-service
@@ -201,6 +214,16 @@ services:
       - pay-service
       - comment-rate-service
       - recommender-ai-service
+
+  # ─────────────────── Auth Service ───────────────────
+  auth-service:
+    build: ./auth-service
+    ports:
+      - "8012:8000"
+    environment:
+      - JWT_SECRET=bookstore-jwt-secret
+      - JWT_EXP_MINUTES=60
+      - AUTH_USERS_JSON={"manager":{"password":"manager123","role":"manager","user_id":1},"staff":{"password":"staff123","role":"staff","user_id":2},"customer":{"password":"customer123","role":"customer","user_id":3}}
 
   # ─────────────────── Staff Service ───────────────────
   staff-service:
@@ -310,6 +333,7 @@ services:
     ports:
       - "8007:8000"
     environment:
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/%2F
       - CART_SERVICE_URL=http://cart-service:8000
       - BOOK_SERVICE_URL=http://book-service:8000
       - PAY_SERVICE_URL=http://pay-service:8000
@@ -327,10 +351,31 @@ services:
         condition: service_started
       ship-service:
         condition: service_started
+      rabbitmq:
+        condition: service_healthy
       postgres-order:
         condition: service_healthy
     volumes:
       - order-data:/app/data
+
+  order-saga-worker:
+    build: ./order-service
+    command: ["sh", "-c", "python manage.py migrate --run-syncdb && python manage.py run_saga_worker"]
+    environment:
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/%2F
+      - CART_SERVICE_URL=http://cart-service:8000
+      - BOOK_SERVICE_URL=http://book-service:8000
+      - DB_HOST=postgres-order
+      - DB_NAME=order_db
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      order-service:
+        condition: service_started
+      postgres-order:
+        condition: service_healthy
 
   # ─────────────────── Ship Service ───────────────────
   ship-service:
@@ -338,6 +383,7 @@ services:
     ports:
       - "8008:8000"
     environment:
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/%2F
       - DB_HOST=postgres-ship
       - DB_NAME=ship_db
       - DB_USER=postgres
@@ -348,12 +394,30 @@ services:
     volumes:
       - ship-data:/app/data
 
+  ship-event-worker:
+    build: ./ship-service
+    command: ["sh", "-c", "python manage.py migrate --run-syncdb && python manage.py run_shipping_worker"]
+    environment:
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/%2F
+      - DB_HOST=postgres-ship
+      - DB_NAME=ship_db
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      ship-service:
+        condition: service_started
+      postgres-ship:
+        condition: service_healthy
+
   # ─────────────────── Pay Service ───────────────────
   pay-service:
     build: ./pay-service
     ports:
       - "8009:8000"
     environment:
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/%2F
       - DB_HOST=postgres-pay
       - DB_NAME=pay_db
       - DB_USER=postgres
@@ -363,6 +427,23 @@ services:
         condition: service_healthy
     volumes:
       - pay-data:/app/data
+
+  pay-event-worker:
+    build: ./pay-service
+    command: ["sh", "-c", "python manage.py migrate --run-syncdb && python manage.py run_payment_worker"]
+    environment:
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/%2F
+      - DB_HOST=postgres-pay
+      - DB_NAME=pay_db
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      pay-service:
+        condition: service_started
+      postgres-pay:
+        condition: service_healthy
 
   # ─────────────────── Comment & Rate Service ───────────────────
   comment-rate-service:
