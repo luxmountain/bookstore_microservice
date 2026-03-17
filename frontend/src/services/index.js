@@ -52,3 +52,8 @@ export const recommendationService = {
     getRecommendations: (customerId) =>
         api.get('/recommendations/recommendations/for_customer/', { params: { customer_id: customerId } }),
 }
+
+export const clotheService = {
+    getAll: (params = {}) => api.get('/clothes/clothes/', { params }),
+    getById: (id) => api.get(`/clothes/clothes/${id}/`),
+}

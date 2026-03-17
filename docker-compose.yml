@@ -140,6 +140,20 @@ services:
       timeout: 5s
       retries: 5
 
+  postgres-clothe:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_DB=clothe_db
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    volumes:
+      - postgres-clothe-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
   postgres-recommender:
     image: postgres:15-alpine
     environment:
@@ -188,6 +202,7 @@ services:
       - SHIP_SERVICE_URL=http://ship-service:8000
       - PAY_SERVICE_URL=http://pay-service:8000
       - COMMENT_SERVICE_URL=http://comment-rate-service:8000
+      - CLOTHE_SERVICE_URL=http://clothe-service:8000
       - RECOMMENDER_SERVICE_URL=http://recommender-ai-service:8000
     depends_on:
       - staff-service
@@ -200,6 +215,7 @@ services:
       - ship-service
       - pay-service
       - comment-rate-service
+      - clothe-service
       - recommender-ai-service
 
   # ─────────────────── Staff Service ───────────────────
@@ -380,6 +396,22 @@ services:
     volumes:
       - comment-data:/app/data
 
+  # ─────────────────── Clothe Service ───────────────────
+  clothe-service:
+    build: ./clothe-service
+    ports:
+      - "8013:8000"
+    environment:
+      - DB_HOST=postgres-clothe
+      - DB_NAME=clothe_db
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+    depends_on:
+      postgres-clothe:
+        condition: service_healthy
+    volumes:
+      - clothe-data:/app/data
+
   # ─────────────────── Recommender AI Service ───────────────────
   recommender-ai-service:
     build: ./recommender-ai-service
@@ -413,6 +445,7 @@ volumes:
   postgres-ship-data:
   postgres-pay-data:
   postgres-comment-data:
+  postgres-clothe-data:
   postgres-recommender-data:
   staff-data:
   manager-data:
@@ -424,4 +457,5 @@ volumes:
   ship-data:
   pay-data:
   comment-data:
+  clothe-data:
   recommender-data:

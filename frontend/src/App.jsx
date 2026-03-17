@@ -10,6 +10,7 @@ import Footer from "./components/Footer";
 
 import HomePage from "./pages/HomePage";
 import BooksPage from "./pages/BooksPage";
+import ClothesPage from "./pages/ClothesPage";
 import BookDetailPage from "./pages/BookDetailPage";
 import CartPage from "./pages/CartPage";
 import CheckoutPage from "./pages/CheckoutPage";
@@ -31,6 +32,7 @@ function App() {
               <Routes>
                 <Route path="/" element={<HomePage />} />
                 <Route path="/books" element={<BooksPage />} />
+                <Route path="/clothes" element={<ClothesPage />} />
                 <Route path="/books/:id" element={<BookDetailPage />} />
                 <Route path="/cart" element={<CartPage />} />
                 <Route path="/checkout" element={<CheckoutPage />} />

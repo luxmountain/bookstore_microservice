@@ -17,6 +17,7 @@ SERVICES = {
     "shipments": os.environ.get("SHIP_SERVICE_URL", "http://ship-service:8000"),
     "payments": os.environ.get("PAY_SERVICE_URL", "http://pay-service:8000"),
     "comments": os.environ.get("COMMENT_SERVICE_URL", "http://comment-rate-service:8000"),
+    "clothes": os.environ.get("CLOTHE_SERVICE_URL", "http://clothe-service:8000"),
     "recommendations": os.environ.get("RECOMMENDER_SERVICE_URL", "http://recommender-ai-service:8000"),
 }
 

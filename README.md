@@ -18,6 +18,7 @@ A microservice-based bookstore built with **Django REST Framework**, **Docker Co
 | 10  | **pay-service**            | 8009 | Payment processing & refunds                            |
 | 11  | **comment-rate-service**   | 8010 | Book ratings & comments                                 |
 | 12  | **recommender-ai-service** | 8011 | AI-based book recommendations (collaborative filtering) |
+| 13  | **clothe-service**         | 8013 | Clothing inventory and details                          |
 
 ## Quick Start
 

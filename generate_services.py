@@ -57,6 +57,11 @@ SERVICES = {
         "app": "comments",
         "port": 8010,
     },
+    "clothe-service": {
+        "project": "clothe_service",
+        "app": "clothes",
+        "port": 8013,
+    },
     "recommender-ai-service": {
         "project": "recommender_service",
         "app": "recommender",

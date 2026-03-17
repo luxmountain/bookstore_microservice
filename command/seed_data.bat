@@ -42,6 +42,11 @@ docker-compose exec -T book-service python manage.py seed_books
 echo ^>^>^> book-service seeded successfully!
 
 echo.
+echo ^>^>^> Seeding clothe-service...
+docker-compose exec -T clothe-service python manage.py seed_clothes
+echo ^>^>^> clothe-service seeded successfully!
+
+echo.
 echo ^>^>^> Seeding cart-service...
 docker-compose exec -T cart-service python manage.py seed_carts
 echo ^>^>^> cart-service seeded successfully!
@@ -83,6 +88,7 @@ echo   - 10 Staff members
 echo   - 5 Managers
 echo   - 50 Customers
 echo   - 100+ Books
+echo   - 10 Clothes
 echo   - 30 Carts with items
 echo   - 100 Orders with items
 echo   - 100 Payments

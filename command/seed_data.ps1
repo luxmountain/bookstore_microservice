@@ -32,6 +32,7 @@ Seed-Service -ServiceName "customer-service" -Command "seed_customers"
 Write-Host "`n=== Phase 2: Seeding dependent data ===" -ForegroundColor Magenta
 
 Seed-Service -ServiceName "book-service" -Command "seed_books"
+Seed-Service -ServiceName "clothe-service" -Command "seed_clothes"
 Seed-Service -ServiceName "cart-service" -Command "seed_carts"
 Seed-Service -ServiceName "order-service" -Command "seed_orders"
 
@@ -54,6 +55,7 @@ Write-Host "  - 10 Staff members"
 Write-Host "  - 5 Managers"
 Write-Host "  - 50 Customers"
 Write-Host "  - 100+ Books"
+Write-Host "  - 10 Clothes"
 Write-Host "  - 30 Carts with items"
 Write-Host "  - 100 Orders with items"
 Write-Host "  - 100 Payments"

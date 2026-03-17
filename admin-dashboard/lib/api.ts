@@ -111,6 +111,15 @@ export const services: Service[] = [
         color: 'bg-cyan-500',
         description: 'Quản lý đánh giá và nhận xét'
     },
+    {
+        id: 'clothes',
+        name: 'Clothe Service',
+        displayName: 'Quần áo',
+        endpoint: '/api/clothes/clothes/',
+        icon: '👕',
+        color: 'bg-rose-500',
+        description: 'Quản lý sản phẩm quần áo'
+    },
 ];
 
 export async function fetchServiceData(endpoint: string, params?: any) {
