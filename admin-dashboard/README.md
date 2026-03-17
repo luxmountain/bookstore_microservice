@@ -102,9 +102,13 @@ Cấu hình API endpoint trong file `.env.local`:
 
 ```env
 NEXT_PUBLIC_API_URL=http://localhost:8000
+NEXT_PUBLIC_ADMIN_USERNAME=manager
+NEXT_PUBLIC_ADMIN_PASSWORD=manager123
 ```
 
 Hoặc khi chạy trong Docker, URL sẽ tự động được set thành `http://api-gateway:8000`
+
+Dashboard sẽ tự đăng nhập qua endpoint `/api/auth/login/` và tự gắn `Authorization: Bearer <token>` vào các request.
 
 ## 🎨 Screenshots
 

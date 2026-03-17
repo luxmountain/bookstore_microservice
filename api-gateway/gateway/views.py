@@ -62,7 +62,10 @@ class GatewayProxyView(APIView):
         else:
             claims = None
 
-        url = f"{base_url}/api/{path}"
+        if service_name == "auth":
+            url = f"{base_url}/api/auth/{path}"
+        else:
+            url = f"{base_url}/api/{path}"
         if not url.endswith("/"):
             url += "/"
 

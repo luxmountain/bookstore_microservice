@@ -1,6 +1,54 @@
 import axios from 'axios';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const ADMIN_USERNAME = process.env.NEXT_PUBLIC_ADMIN_USERNAME || 'manager';
+const ADMIN_PASSWORD = process.env.NEXT_PUBLIC_ADMIN_PASSWORD || 'manager123';
+const ACCESS_TOKEN_KEY = 'admin_dashboard_access_token';
+
+function getStoredAccessToken() {
+    if (typeof window === 'undefined') return null;
+    return window.localStorage.getItem(ACCESS_TOKEN_KEY);
+}
+
+function setStoredAccessToken(token: string) {
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem(ACCESS_TOKEN_KEY, token);
+}
+
+function clearStoredAccessToken() {
+    if (typeof window === 'undefined') return;
+    window.localStorage.removeItem(ACCESS_TOKEN_KEY);
+}
+
+async function loginAndGetAccessToken() {
+    const response = await axios.post(
+        `${API_BASE_URL}/api/auth/login/`,
+        {
+            username: ADMIN_USERNAME,
+            password: ADMIN_PASSWORD,
+        },
+        {
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            timeout: 10000,
+        }
+    );
+
+    const token = response.data?.access_token;
+    if (token) {
+        setStoredAccessToken(token);
+        return token;
+    }
+
+    return null;
+}
+
+async function getOrCreateAccessToken() {
+    const existingToken = getStoredAccessToken();
+    if (existingToken) return existingToken;
+    return loginAndGetAccessToken();
+}
 
 export const apiClient = axios.create({
     baseURL: API_BASE_URL,
@@ -9,6 +57,41 @@ export const apiClient = axios.create({
         'Content-Type': 'application/json',
     },
 });
+
+apiClient.interceptors.request.use(async (config) => {
+    const token = await getOrCreateAccessToken();
+    if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+});
+
+apiClient.interceptors.response.use(
+    (response) => response,
+    async (error) => {
+        const originalRequest = error.config;
+
+        if (error.response?.status === 401 && originalRequest && !originalRequest._retry) {
+            originalRequest._retry = true;
+            clearStoredAccessToken();
+
+            try {
+                const token = await loginAndGetAccessToken();
+                if (token) {
+                    originalRequest.headers = {
+                        ...originalRequest.headers,
+                        Authorization: `Bearer ${token}`,
+                    };
+                    return apiClient(originalRequest);
+                }
+            } catch (_retryError) {
+                return Promise.reject(error);
+            }
+        }
+
+        return Promise.reject(error);
+    }
+);
 
 export interface Service {
     id: string;
